@@ -4,18 +4,19 @@ const contacts = require("./contacts.json");
 const { v4: uuidv4 } = require("uuid");
 const { brotliDecompress } = require("zlib");
 const e = require("express");
+const { Contacts } = require("../db/mongoModel");
 
 const contactsPath = path.join(__dirname, "./contacts.json");
 
-const getContactsList = async () => {
-  const data = await fs.readFile(contactsPath, "utf-8");
-  const result = JSON.parse(data);
-  return result;
-};
+// const getContactsList = async () => {
+//   const data = await fs.readFile(contactsPath, "utf-8");
+//   const result = JSON.parse(data);
+//   return result;
+// };
 
 const listContacts = async () => {
   try {
-    const list = await getContactsList();
+    const list = await Contacts.find({});
     return list;
   } catch (error) {
     console.error("error", error);
@@ -24,8 +25,7 @@ const listContacts = async () => {
 
 const getContactById = async (contactId) => {
   try {
-    const list = await getContactsList();
-    const contact = list.filter((item) => item.id === contactId);
+    const contact = await Contacts.findById(contactId);
     return contact;
   } catch (error) {
     console.error("error", error);
@@ -34,10 +34,7 @@ const getContactById = async (contactId) => {
 
 const removeContact = async (contactId) => {
   try {
-    const list = await getContactsList();
-    const contact = list.filter((item) => item.id !== contactId);
-    if (list.length === contact.length) return false;
-    await fs.writeFile(contactsPath, JSON.stringify(contact));
+    const contact = await Contacts.findByIdAndRemove(contactId);
     return contact;
   } catch (error) {
     console.error("error", error);
@@ -45,43 +42,41 @@ const removeContact = async (contactId) => {
 };
 
 const addContact = async (body) => {
-  const newContact = {
-    id: uuidv4(),
-    name: body.name,
-    email: body.email,
-    phone: body.phone,
-  };
+  const { name, email, phone } = body;
+  const favorite = body.favorite ? body.favorite : false;
 
   try {
-    const list = await getContactsList();
-    list.push(newContact);
-    fs.writeFile(contactsPath, JSON.stringify(list));
-    return newContact;
+    const contact = await new Contacts({ name, email, phone, favorite });
+    await contact.save();
+    return contact;
   } catch (error) {
     console.error("error", error);
   }
 };
 
 const updateContact = async (contactId, body) => {
+  const { name, email, phone, favorite } = body;
+
   try {
-    const list = await getContactsList();
-
-    const contact = list.filter((item) => {
-      if (item.id === contactId) {
-        item.name = body.name;
-        item.email = body.email;
-        item.phone = body.phone;
-      }
-      return item;
+    const contact = await Contacts.findByIdAndUpdate(contactId, {
+      $set: { name, email, phone, favorite },
     });
-
-    fs.writeFile(contactsPath, JSON.stringify(contact));
-
-    const result = contact.find((item) => item.id === contactId);
-
-    return result;
+    return getContactById(contactId);
   } catch (error) {
-    console.error("error", error);
+    console.error("error", error.message);
+  }
+};
+
+const updateStatusContact = async (contactId, body) => {
+  const { favorite } = body;
+
+  try {
+    const contact = await Contacts.findByIdAndUpdate(contactId, {
+      $set: { favorite },
+    });
+    return getContactById(contactId);
+  } catch (error) {
+    console.error("error", error.message);
   }
 };
 
@@ -91,4 +86,5 @@ module.exports = {
   removeContact,
   addContact,
   updateContact,
+  updateStatusContact,
 };
