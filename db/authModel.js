@@ -19,6 +19,9 @@ const authSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  avatarURL: {
+    type: String,
+  },
 });
 
 const User = mongoose.model("Users", authSchema);
