@@ -1,7 +1,9 @@
 const e = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const gravatar = require("gravatar");
 const { User } = require("../db/authModel");
+// const { getMaxListeners } = require("../app");
 
 const registration = async (body) => {
   const { email, password } = body;
@@ -10,6 +12,7 @@ const registration = async (body) => {
     const user = new User({
       email,
       password: await bcrypt.hash(password, 10),
+      avatarURL: gravatar.url(email, { protocol: "http", s: "100" }),
     });
 
     await user.save();
