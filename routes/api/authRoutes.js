@@ -3,10 +3,20 @@ const router = express.Router();
 const gravatar = require("gravatar");
 const { User } = require("../../db/authModel");
 
-const { registration, login, logout, current } = require("../../model/auth");
+const {
+  registration,
+  login,
+  logout,
+  current,
+  confirmEmail,
+  confirmEmailSecondTime,
+} = require("../../model/auth");
 const { changeAvatar } = require("../../model/files");
 
-const { userValidation } = require("../../middlewares/validationMiddlewares");
+const {
+  userValidation,
+  confirmEmailSecondTimeValidation,
+} = require("../../middlewares/validationMiddlewares");
 const { authMiddelware } = require("../../middlewares/authMiddleware");
 const { uploadMiddleware } = require("../../model/files");
 
@@ -54,6 +64,27 @@ router.patch(
     );
 
     res.json({ avatarURL: `${result}` });
+  }
+);
+
+router.get("/verify/:verificationToken", async (req, res, next) => {
+  const { verificationToken } = req.params;
+  const result = await confirmEmail(verificationToken);
+  if (!result) {
+    return res.status(401).json({ message: "User not found" });
+  }
+  res.json({ message: "Verification successful" });
+});
+
+router.post(
+  "/verify",
+  confirmEmailSecondTimeValidation,
+  async (req, res, next) => {
+    const { email } = req.body;
+    const result = await confirmEmailSecondTime(email);
+    if (typeof result === "string")
+      return res.status(400).json({ message: result });
+    if (result) res.json({ message: "Verification email sent" });
   }
 );
 
